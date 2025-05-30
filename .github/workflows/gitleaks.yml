@@ -1,0 +1,34 @@
+name: Repository Secret Scanner # Workflow identifier
+
+on: # Trigger conditions
+  pull_request: # Runs when PRs target
+    branches:
+      - main  # The protected branch
+  push: # Executes on direct pushes
+    branches:
+      - main  # Only for main branch
+  workflow_dispatch: # Manual trigger option
+
+jobs:
+  security_audit:
+    name: Credential Detection # Job name
+    runs-on: ubuntu-latest # Execution environment
+
+    steps:
+    - name: Fetch Codebase # Retrieves repository contents
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # Gets complete git history
+
+    - name: Perform Secret Scan # Runs leak detection
+      uses: gitleaks/gitleaks-action@v2
+      with:
+        args: git --log-opts $(git merge-base origin/main HEAD)..HEAD --report-format sarif --report-path secret-scan.sarif
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Required permissions
+
+    # Uncomment to enable results upload:
+    # - name: Submit Security Findings
+    #   uses: github/codeql-action/upload-sarif@v3
+    #   with:
+    #     sarif_file: secret-scan.sarif
